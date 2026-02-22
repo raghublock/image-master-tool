@@ -8,22 +8,33 @@
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #007bff; margin-top: 0; }
-        .upload-section { border: 3px dashed #007bff; padding: 40px; text-align: center; cursor: pointer; border-radius: 12px; background: #f8fbff; transition: 0.3s; }
-        .upload-section:hover { background: #eef5ff; border-color: #0056b3; }
-        .editor-layout { display: flex; flex-wrap: wrap; gap: 30px; margin-top: 20px; }
-        .preview-area { flex: 1.5; min-width: 350px; background: #222; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 400px; }
+        h2 { text-align: center; color: #007bff; margin-bottom: 20px; }
+        
+        /* Dashboard Layout */
+        .editor-layout { display: flex; flex-wrap: wrap; gap: 30px; }
+        
+        /* Preview Area */
+        .preview-area { flex: 1.5; min-width: 350px; background: #222; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 450px; position: relative; border: 2px solid #ddd; }
+        .no-image-msg { color: #888; text-align: center; }
+        
+        /* Controls Area */
         .controls { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 15px; }
         .control-group { background: #ffffff; padding: 15px; border-radius: 10px; border: 1px solid #e0e0e0; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
-        .info-tag { font-size: 12px; color: #555; margin-bottom: 10px; background: #eef5ff; padding: 8px; border-radius: 5px; border-left: 3px solid #007bff; }
+        
+        .upload-btn-wrapper { margin-bottom: 10px; }
+        .info-tag { font-size: 12px; color: #555; margin-bottom: 10px; background: #eef5ff; padding: 8px; border-radius: 5px; border-left: 3px solid #007bff; min-height: 20px; }
+        
         label { font-weight: 600; display: block; margin-bottom: 8px; font-size: 14px; color: #555; }
         input, select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 14px; }
-        button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
-        button:hover { background: #0056b3; }
-        #downloadBtn { background: #28a745; display: none; }
-        #downloadBtn:hover { background: #218838; }
-        #status { font-weight: bold; text-align: center; padding: 10px; border-radius: 5px; }
-        img { max-width: 100%; display: block; }
+        
+        .btn-upload { background: #007bff; color: white; margin-bottom: 10px; cursor: pointer; text-align: center; }
+        .btn-process { background: #6c757d; color: white; border: none; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .btn-process.active { background: #007bff; }
+        
+        #downloadBtn { background: #28a745; display: none; margin-top: 10px; color: white; }
+        #status { font-weight: bold; text-align: center; padding: 10px; border-radius: 5px; margin-top: 10px; }
+        
+        img { max-width: 100%; display: none; }
     </style>
 </head>
 <body>
@@ -31,26 +42,30 @@
 <div class="container">
     <h2>📸 Universal Image Master</h2>
     
-    <div class="upload-section" onclick="document.getElementById('fileInput').click()">
-        <p id="uploadText"><strong>Drag & Drop</strong> ya yahan click karke photo select karein</p>
-        <input type="file" id="fileInput" hidden accept="image/*">
-    </div>
-
-    <div class="editor-layout" id="mainEditor" style="display: none;">
-        <div class="preview-area">
+    <div class="editor-layout">
+        <div class="preview-area" id="previewArea">
+            <div class="no-image-msg" id="noImageMsg">
+                <p>Koi photo select nahi ki gayi hai.</p>
+                <button onclick="document.getElementById('fileInput').click()" style="width: auto; padding: 10px 20px; background: #444; color: #fff;">Photo Upload Karein</button>
+            </div>
             <img id="imageDisplay">
         </div>
 
         <div class="controls">
-            <div id="fileInfo" class="info-tag"></div>
+            <div class="upload-btn-wrapper">
+                <input type="file" id="fileInput" hidden accept="image/*">
+                <button class="btn-upload" onclick="document.getElementById('fileInput').click()">📁 Select New Photo</button>
+            </div>
+
+            <div id="fileInfo" class="info-tag">Original Photo Details yahan dikhengi...</div>
 
             <div class="control-group">
-                <label>File Name Edit Karein</label>
-                <input type="text" id="editFileName" placeholder="Enter new file name">
+                <label>File Name (Edit)</label>
+                <input type="text" id="editFileName" placeholder="Filename yahan likhein">
             </div>
 
             <div class="control-group">
-                <label>File Format (Kis type mein chahiye?)</label>
+                <label>Target Format</label>
                 <select id="formatSelect">
                     <option value="image/jpeg">JPEG (.jpg)</option>
                     <option value="image/png">PNG (.png)</option>
@@ -59,21 +74,20 @@
             </div>
 
             <div class="control-group">
-                <label>Target Size (Max KB mein)</label>
-                <input type="number" id="targetSize" placeholder="Example: 50" min="1">
-                <small style="color: #888;">Note: Ye exact target se thoda niche hi rakhega safety ke liye.</small>
+                <label>Target Size (Max KB)</label>
+                <input type="number" id="targetSize" placeholder="Example: 50">
             </div>
 
             <div class="control-group">
-                <label>Manual Dimensions (Optional)</label>
+                <label>Manual Resize (Optional)</label>
                 <div style="display: flex; gap: 8px;">
-                    <input type="number" id="resizeW" placeholder="Width (px)">
-                    <input type="number" id="resizeH" placeholder="Height (px)">
+                    <input type="number" id="resizeW" placeholder="W (px)">
+                    <input type="number" id="resizeH" placeholder="H (px)">
                 </div>
             </div>
 
-            <button onclick="processImage()">Apply & Process Image</button>
-            <button id="downloadBtn" onclick="downloadFinalImage()">📥 Download Processed Image</button>
+            <button class="btn-process" id="processBtn" onclick="processImage()">🚀 Apply & Process</button>
+            <button id="downloadBtn" onclick="downloadFinalImage()">📥 Download Image</button>
             <div id="status"></div>
         </div>
     </div>
@@ -85,24 +99,27 @@
     let cropper;
     const fileInput = document.getElementById('fileInput');
     const imageDisplay = document.getElementById('imageDisplay');
-    const mainEditor = document.getElementById('mainEditor');
+    const noImageMsg = document.getElementById('noImageMsg');
     const status = document.getElementById('status');
     const fileInfo = document.getElementById('fileInfo');
     const editFileNameInput = document.getElementById('editFileName');
+    const processBtn = document.getElementById('processBtn');
 
     fileInput.onchange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Show original info
             const sizeInKB = (file.size / 1024).toFixed(2);
             const nameWithoutExt = file.name.split('.')[0];
-            fileInfo.innerHTML = `<strong>Original Photo:</strong> ${file.name} | <strong>Size:</strong> ${sizeInKB} KB`;
+            fileInfo.innerHTML = `<strong>Size:</strong> ${sizeInKB} KB | <strong>Name:</strong> ${file.name}`;
             editFileNameInput.value = nameWithoutExt;
 
             const reader = new FileReader();
             reader.onload = () => {
                 imageDisplay.src = reader.result;
-                mainEditor.style.display = 'flex';
+                imageDisplay.style.display = 'block';
+                noImageMsg.style.display = 'none';
+                processBtn.classList.add('active');
+                
                 if (cropper) cropper.destroy();
                 cropper = new Cropper(imageDisplay, { 
                     aspectRatio: NaN, 
@@ -117,7 +134,10 @@
     };
 
     async function processImage() {
-        if (!cropper) return;
+        if (!cropper) {
+            alert("Pehle photo upload karein!");
+            return;
+        }
 
         const format = document.getElementById('formatSelect').value;
         const targetSizeKB = parseFloat(document.getElementById('targetSize').value);
@@ -125,7 +145,7 @@
         const manualH = document.getElementById('resizeH').value;
 
         status.style.color = "#007bff";
-        status.innerText = "⏳ Processing... Size adjust ho raha hai.";
+        status.innerText = "⏳ Processing... Please wait.";
 
         let canvas = cropper.getCroppedCanvas({
             width: manualW || undefined,
@@ -148,25 +168,19 @@
                 finalBlob = await new Promise(resolve => tempCanvas.toBlob(resolve, format, quality));
                 currentSize = finalBlob.size / 1024;
 
-                if (quality > 0.3) {
-                    quality -= 0.05;
-                } else {
-                    scale -= 0.1;
-                    quality = 0.7;
-                }
+                if (quality > 0.3) quality -= 0.05;
+                else { scale -= 0.1; quality = 0.7; }
             }
         } else {
             finalBlob = await new Promise(resolve => canvas.toBlob(resolve, format, 0.9));
         }
 
         if (finalBlob) {
-            const finalUrl = URL.createObjectURL(finalBlob);
-            window.finalUrl = finalUrl;
+            window.finalUrl = URL.createObjectURL(finalBlob);
             window.finalFormat = format.split('/')[1];
-            
             document.getElementById('downloadBtn').style.display = 'block';
             status.style.color = "#28a745";
-            status.innerText = `✅ Done! Final Size: ${(finalBlob.size / 1024).toFixed(2)} KB`;
+            status.innerText = `✅ Success: ${(finalBlob.size / 1024).toFixed(2)} KB`;
         }
     }
 
