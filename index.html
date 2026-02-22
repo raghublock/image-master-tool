@@ -15,6 +15,7 @@
         .preview-area { flex: 1.5; min-width: 350px; background: #222; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 400px; }
         .controls { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 15px; }
         .control-group { background: #ffffff; padding: 15px; border-radius: 10px; border: 1px solid #e0e0e0; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .info-tag { font-size: 12px; color: #555; margin-bottom: 10px; background: #eef5ff; padding: 8px; border-radius: 5px; border-left: 3px solid #007bff; }
         label { font-weight: 600; display: block; margin-bottom: 8px; font-size: 14px; color: #555; }
         input, select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 14px; }
         button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
@@ -41,6 +42,13 @@
         </div>
 
         <div class="controls">
+            <div id="fileInfo" class="info-tag"></div>
+
+            <div class="control-group">
+                <label>File Name Edit Karein</label>
+                <input type="text" id="editFileName" placeholder="Enter new file name">
+            </div>
+
             <div class="control-group">
                 <label>File Format (Kis type mein chahiye?)</label>
                 <select id="formatSelect">
@@ -75,23 +83,27 @@
 
 <script>
     let cropper;
-    let originalFileName;
     const fileInput = document.getElementById('fileInput');
     const imageDisplay = document.getElementById('imageDisplay');
     const mainEditor = document.getElementById('mainEditor');
     const status = document.getElementById('status');
+    const fileInfo = document.getElementById('fileInfo');
+    const editFileNameInput = document.getElementById('editFileName');
 
-    // Image Upload Handling
     fileInput.onchange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            originalFileName = file.name.split('.')[0];
+            // Show original info
+            const sizeInKB = (file.size / 1024).toFixed(2);
+            const nameWithoutExt = file.name.split('.')[0];
+            fileInfo.innerHTML = `<strong>Original Photo:</strong> ${file.name} | <strong>Size:</strong> ${sizeInKB} KB`;
+            editFileNameInput.value = nameWithoutExt;
+
             const reader = new FileReader();
             reader.onload = () => {
                 imageDisplay.src = reader.result;
                 mainEditor.style.display = 'flex';
                 if (cropper) cropper.destroy();
-                // Initialize Cropper
                 cropper = new Cropper(imageDisplay, { 
                     aspectRatio: NaN, 
                     viewMode: 1,
@@ -115,18 +127,16 @@
         status.style.color = "#007bff";
         status.innerText = "⏳ Processing... Size adjust ho raha hai.";
 
-        // 1. Get Cropped Canvas
         let canvas = cropper.getCroppedCanvas({
             width: manualW || undefined,
             height: manualH || undefined
         });
 
-        let quality = 0.98; // Start with high quality
+        let quality = 0.98;
         let scale = 1.0;
         let finalBlob;
         let currentSize = Infinity;
 
-        // 2. Precision Loop (2% steps for accuracy)
         if (targetSizeKB) {
             while (currentSize > targetSizeKB && (quality > 0.1 || scale > 0.1)) {
                 const tempCanvas = document.createElement('canvas');
@@ -138,19 +148,17 @@
                 finalBlob = await new Promise(resolve => tempCanvas.toBlob(resolve, format, quality));
                 currentSize = finalBlob.size / 1024;
 
-                // Step strategy: Reduce quality slowly, then scale if needed
                 if (quality > 0.3) {
-                    quality -= 0.05; // 5% reduction per step
+                    quality -= 0.05;
                 } else {
-                    scale -= 0.1;   // Reduce resolution
-                    quality = 0.7;  // Reset quality for new scale
+                    scale -= 0.1;
+                    quality = 0.7;
                 }
             }
         } else {
             finalBlob = await new Promise(resolve => canvas.toBlob(resolve, format, 0.9));
         }
 
-        // 3. Result Output
         if (finalBlob) {
             const finalUrl = URL.createObjectURL(finalBlob);
             window.finalUrl = finalUrl;
@@ -163,13 +171,13 @@
     }
 
     function downloadFinalImage() {
+        const newName = editFileNameInput.value || "processed_image";
         const link = document.createElement('a');
         link.href = window.finalUrl;
-        link.download = `${originalFileName}_processed.${window.finalFormat}`;
+        link.download = `${newName}.${window.finalFormat}`;
         link.click();
     }
 </script>
 
 </body>
 </html>
-
